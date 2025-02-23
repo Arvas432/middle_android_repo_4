@@ -14,6 +14,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -34,20 +36,25 @@ class SettingsRepositoryImpl(
 
     override suspend fun saveSetting(periodic: Long, delayed: Long) {
         withContext(dispatcher) {
-            // Реализуйте функционал записи в dataStore
-            // Для periodic ключ - REFRESH_PERIOD_KEY
-            // Для delayed ключ - FIRST_LAUNCH_DELAY_KEY
-            // После записи данных обновите _state
+            dataStore.edit { preferences ->
+                preferences[REFRESH_PERIOD_KEY] = periodic
+                preferences[FIRST_LAUNCH_DELAY_KEY] = delayed
+            }
+            _state.value = SettingContainer(periodic, delayed)
         }
     }
 
 
     override suspend fun readSetting() {
         withContext(dispatcher){
-            // Реализуйте функционал чтения данных  из dataStore.
-            // Для periodic ключ - REFRESH_PERIOD_KEY, значение по умолчанию SettingContainer.DEFAULT_REFRESH_PERIOD
-            // Для delayed ключ - FIRST_LAUNCH_DELAY_KEY, значение по умолчанию SettingContainer.FIST_LAUNCH_DELAY
-            // После чтения данных обновите _state
+            val periodic = dataStore.data.map { preferences ->
+                preferences[REFRESH_PERIOD_KEY] ?: SettingContainer.DEFAULT_REFRESH_PERIOD
+            }.first()
+
+            val delayed = dataStore.data.map { preferences ->
+                preferences[FIRST_LAUNCH_DELAY_KEY] ?: SettingContainer.FIST_LAUNCH_DELAY
+            }.first()
+            _state.value = SettingContainer(periodic, delayed)
         }
     }
 }
